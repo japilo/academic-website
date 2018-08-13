@@ -63,20 +63,20 @@ enableGitInfo = false
   font = "default"
 
   # Your details.
-  name = "Lena Smith"
-  role = "Professor of Artificial Intelligence"
+  name = "Julia Pilowsky"
+  role = "PhD Student in Computational Ecology"
 
   # Organizations/Affiliations.
   #   Separate multiple entries with a comma, using the form: `[ {name="Org1", url=""}, {name="Org2", url=""} ]`.
-  organizations = [ { name = "Stanford University", url = "" } ]
+  organizations = [ { name = "University of Copenhagen", url = "" }, { name = "University of Adelaide", url = ""} ]
 
   gravatar = false  # Get your avatar from Gravatar.com? (true/false)
   avatar = "portrait.jpg"  # Specify an avatar image (in `static/img/` folder) or delete value to disable avatar.
   email = "test@example.org"
-  address = "Building 1 Room 1, Stanford University, California, 90210, USA"
-  office_hours = "Monday 10:00 to 13:00 or email for appointment"
-  phone = "888 888 88 88"
-  skype = "echo123"
+  address = ""
+  office_hours = ""
+  phone = ""
+  skype = ""
   telegram = ""
 
   # Enable Keybase in Contact widget by entering your keybase.io username.
@@ -107,8 +107,8 @@ enableGitInfo = false
   #   3: OpenStreetMap (Mapbox)
   map = 0
   map_api_key = ""
-  latitude = "37.4275"
-  longitude = "-122.1697"
+  latitude = ""
+  longitude = ""
   zoom = 15
 
   # Date and time format (refer to https://sourcethemes.com/academic/docs/customization/#date-format )
@@ -128,7 +128,7 @@ enableGitInfo = false
 
   # Enable global LaTeX math rendering?
   #   If false, you can enable it locally on a per page basis.
-  math = false
+  math = true
 
   # Highlight.js options
   #   highlight
@@ -238,7 +238,7 @@ enableGitInfo = false
   [[params.social]]
     icon = "twitter"
     icon_pack = "fa"
-    link = "//twitter.com/GeorgeCushen"
+    link = "//twitter.com/hivemindatwork"
 
   [[params.social]]
     icon = "google-scholar"
@@ -248,7 +248,7 @@ enableGitInfo = false
   [[params.social]]
     icon = "github"
     icon_pack = "fa"
-    link = "//github.com/gcushen"
+    link = "//github.com/japilo"
 
   # Link to a PDF of your resume/CV from the About widget.
   # To enable, copy your resume/CV to `static/files/cv.pdf` and uncomment the lines below.
@@ -332,14 +332,5 @@ enableGitInfo = false
 [languages.en]
   languageCode = "en-us"
 
-# Uncomment the lines below to configure your website in a second language.
-#[languages.zh]
-#  languageCode = "zh-Hans"
-#  title = "Chinese website title..."
-#  [languages.zh.params]
-#    name = "Your name in Chinese..."
-#    role = "Your role in Chinese..."
-#  [[languages.zh.menu.main]]
-#    name = "Wo"
-#    url = "#about"
-#    weight = 1
+[permalinks]
+    post = "/:year/:month/:day/:slug/"
