@@ -1,6 +1,7 @@
 ---
 layout: post
 title: My current research, for laypeople
+date: Jun 12, 2018
 ---
 
 I have struggled a lot to explain my current line of research to people in my life who aren't scientists. But if I can't explain my research to everyone, then I can't claim to really know what I'm doing. So I'm going to try my best.

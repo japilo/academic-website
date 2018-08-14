@@ -9,7 +9,7 @@
 baseurl = "/"
 
 # Title of your site
-title = "Academic"
+title = "Julia Pilowsky"
 
 # Your copyright notice - appears in site footer.
 # To display a copyright symbol, type `&copy;`.
@@ -22,11 +22,8 @@ ignoreFiles = ["\\.Rmd$", "\\.Rmarkdown$", "_files$", "_cache$"]
 preserveTaxonomyNames = true
 paginate = 10
 
-# Enable comments by entering your Disqus shortname
-disqusShortname = ""
-
 # Enable analytics by entering your Google Analytics tracking ID
-googleAnalytics = ""
+googleAnalytics = "6c30dc137661b715"
 
 # Default language to use (if you setup multilingual support)
 defaultContentLanguage = "en"
@@ -56,15 +53,15 @@ enableGitInfo = false
 [params]
   # Color theme.
   #   Choose from `default`, `ocean`, `forest`, `coffee`, `dark`, or `1950s`.
-  color_theme = "default"
+  color_theme = "forest"
 
   # Font style.
   #   Choose from `default`, `classic`, or `playfair`.
-  font = "default"
+  font = "playfair"
 
   # Your details.
   name = "Julia Pilowsky"
-  role = "PhD Student in Computational Ecology"
+  role = "PhD Student in Statistical Ecology"
 
   # Organizations/Affiliations.
   #   Separate multiple entries with a comma, using the form: `[ {name="Org1", url=""}, {name="Org2", url=""} ]`.
@@ -72,7 +69,7 @@ enableGitInfo = false
 
   gravatar = false  # Get your avatar from Gravatar.com? (true/false)
   avatar = "portrait.jpg"  # Specify an avatar image (in `static/img/` folder) or delete value to disable avatar.
-  email = "test@example.org"
+  email = "jap2178@caa.columbia.edu"
   address = ""
   office_hours = ""
   phone = ""
@@ -203,14 +200,14 @@ enableGitInfo = false
   # Configuration of project pages.
   [params.projects]
     # List publications and talks related to the project?
-    list_children = true
+    #list_children = true
 
     # Publication list format.
     #   0 = Simple
     #   1 = Detailed
     #   2 = APA
     #   3 = MLA
-    publication_format = 3
+    publication_format = 2
 
   # Social/Academic Networking
   #
@@ -243,7 +240,7 @@ enableGitInfo = false
   [[params.social]]
     icon = "google-scholar"
     icon_pack = "ai"
-    link = "https://scholar.google.co.uk/citations?user=sIwtMXoAAAAJ"
+    link = "https://scholar.google.com/citations?user=L06p2OEAAAAJ"
 
   [[params.social]]
     icon = "github"
@@ -280,15 +277,15 @@ enableGitInfo = false
   url = "#posts"
   weight = 3
 
-[[menu.main]]
-  name = "Projects"
-  url = "#projects"
-  weight = 4
+# [[menu.main]]
+  #name = "Projects"
+  #url = "#projects"
+  #weight = 4
 
-[[menu.main]]
-  name = "Teaching"
-  url = "#teaching"
-  weight = 5
+# [[menu.main]]
+  #name = "Teaching"
+  #url = "#teaching"
+  #weight = 5
 
 [[menu.main]]
   name = "Contact"
@@ -297,10 +294,10 @@ enableGitInfo = false
 
 # Link to a PDF of your resume/CV from the menu.
 # To enable, copy your resume/CV to `static/files/cv.pdf` and uncomment the lines below.
-# [[menu.main]]
-#    name = "CV"
-#    url = "files/cv.pdf"
-#    weight = 7
+ [[menu.main]]
+   name = "CV"
+    url = "files/cv.pdf"
+    weight = 7
 
 # Search.
 [params.search]
