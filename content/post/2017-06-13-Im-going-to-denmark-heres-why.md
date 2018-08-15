@@ -1,9 +1,10 @@
----
-layout: post
-title: I'm going to Denmark! Here's why.
----
++++
+title = "I'm going to Denmark! Here's why."
+date = 2017-06-13T00:00:00
+tags = ["research summary"]
++++
 
-{{ < figure src="/static/posts/diploma.jpg" width="400" height="680" alt="Julia with diploma"> }}
+{{< figure src="posts/diploma.jpg" width="400" height="680" alt="Julia with diploma">}}
 
 With my Master's degree in hand, I'm happy to say that I will be starting a year-long fellowship with the European Doctoral
 School of Demography (EDSD) in September, at the Max Planck Center for Biodemography in Odense.
