@@ -10,31 +10,26 @@ weight = 5
 # List your academic interests.
 [interests]
   interests = [
-    "Artificial Intelligence",
-    "Computational Linguistics",
-    "Information Retrieval"
+    "Conservation Biology",
+    "Spatial Modeling",
+    "Population Dynamics"
   ]
 
 # List your qualifications (such as academic degrees).
+
 [[education.courses]]
-  course = "PhD in Artificial Intelligence"
-  institution = "Stanford University"
+  course = "MSc in Biology"
+  institution = "Tufts University"
+  year = 2017
+
+[[education.courses]]
+  course = "BA in Ecology, Evolution, and Environmental Biology"
+  institution = "Columbia University"
   year = 2012
-
-[[education.courses]]
-  course = "MEng in Artificial Intelligence"
-  institution = "Massachusetts Institute of Technology"
-  year = 2009
-
-[[education.courses]]
-  course = "BSc in Artificial Intelligence"
-  institution = "Massachusetts Institute of Technology"
-  year = 2008
  
 +++
 
 # Biography
 
-Lena Smith is a professor of artificial intelligence at the Stanford AI Lab. Her research interests include distributed robotics, mobile computing and programmable matter. She leads the Robotic Neurobiology group, which develops self-reconfiguring robots, systems of self-organizing robots, and mobile sensor networks.
-
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed neque elit, tristique placerat feugiat ac, facilisis vitae arcu. Proin eget egestas augue. Praesent ut sem nec arcu pellentesque aliquet. Duis dapibus diam vel metus tempus vulputate. 
+Julia Pilowsky is a Chilean-American quantitative ecologist who has conducted research in South Africa, Kenya, Denmark, and the United States. 
+She is currently in a joint PhD program advised by Carsten Rahbek and Damien Fordham, funded by the Australian Research Council, researching the population dynamics of extinct mammals.

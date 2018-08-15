@@ -6,7 +6,7 @@ title: Wasp adventure itinerary
 On Saturday, I'm heading out with my cooler, my bee suit, my ladder, my forceps, and a few changes of clothes so I can find some
 paper wasps in Virginia and North Carolina. Here's a map of my trip.
 
-{{< figure src="static/posts/map1.png" alt = "map of wasp sites in VA and NC" width = "400" height = "300" >}}
+{{ < figure src="static/posts/map1.png" alt = "map of wasp sites in VA and NC" width = "400" height = "300" > }}
 
 Because the weather has been unusually cold in the South just as it has been in the North, I am concentrating my efforts in North
 Carolina, where the temperatures have been above 60ºF more often than not. (I think on this wistfully in Boston, which only broke 60º
