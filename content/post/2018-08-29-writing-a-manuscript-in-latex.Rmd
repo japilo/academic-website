@@ -1,0 +1,85 @@
+---
+title: Creating a scientific manuscript in LaTeX
+author: ''
+date: '2018-08-29'
+slug: writing-a-manuscript-in-latex
+categories:
+  - latex
+tags:
+  - workflow
+header:
+  caption: ''
+  image: ''
+---
+
+I'm submitting a manuscript as a `.tex` file for the first time, so I thought I'd document my workflow for anyone else who wants to give it a try. This is meant for people who know the very basics of LaTeX but are essentially beginners (much like myself.)
+
+I habitually write my manuscripts in [Scrivener](https://www.literatureandlatte.com/scrivener/overview), which allows me to organize my thoughts into the structure of a scientific paper.
+
+![Scrivener screenshot](/posts/scrivener screenshot.png)
+
+Scrivener has an option to compile drafts to LaTeX via [MultiMarkdown](http://multimarkdown.com/). The export is not perfect, but it doesn't take too much tweaking.
+
+I got started with [Elsevier's article template](https://www.latextemplates.com/template/elseviers-elsarticle-document-class), even though I am not submitting to an Elsevier journal, and customized from there. One of the first customizations was to find the right `.bst` file, which BibTeX uses to format the bibliography according to a particular journal's style. Then I exported the [Zotero](https://www.zotero.org/) collection with all my citations for the manuscript to a `.bib` file and put it in the folder with my `.tex` file.
+
+![Zotero screenshot](/posts/zotero screenshot.png)
+
+Then I had to go through the manuscript and replace all the parenthetical citations I'd written by hand and replace them with `natbib` syntax. I cited R using the syntax `\citep{r2018}`, where `r2018` was my keyword for R in the `.bib` file with all my citations:
+
+```
+@misc{r2018,
+	title = {R: A Language and Environment for Statistical Computing},
+    author = {{R Core Team}},
+    organization = {R Foundation for Statistical Computing},
+    address = {Vienna, Austria},
+    year = {2018},
+    url = {https://www.R-project.org/},
+}
+
+We did our analyses in R \citep{r2018}.
+```
+
+I also had to add captions and labels to my figures so I could refer to them in the text with their labels instead of their numbers. The advantage to doing this is that if I were to delete Figure 1 in a later revision, all the references to figures would automatically update to reflect the fact that the numbering of the figures has now changed.
+
+```
+\begin{figure}[p!]
+\includegraphics[keepaspectratio,width=\textwidth,height=0.75\textheight]{somefigure.png}
+\caption{An amazing figure I made.}
+\label{fig:somefig}
+\end{figure}
+
+Our methods were very clever (see Figure \ref{fig:somefig}).
+```
+
+The journal I am submitting to requires that every figure have its own page in the manuscript. The `[p!]` modifier after `\begin{figure}` ensures this.
+
+Fortunately, I had already made my tables in LaTeX, so I didn't have to convert those over. However, if I hadn't already made my tables in LaTeX, I could have made them using the handy R package `xtable`.
+
+```{r xtable}
+library(xtable)
+school <- data.frame(Year = c("2008", "2013", "2018"), 
+           `Schooling I Had` = c("High School", "College", "Masters"))
+xtable(school, c("Level of schooling acquired by JAP"), label = "table:school")
+```
+
+I employed several packages to make my manuscript conform to the journal's requirements. 
+
+```
+\usepackage{graphics}
+\usepackage{hyperref}
+\usepackage{mathptmx}
+\usepackage{setspace}
+\doublespacing
+\usepackage[margin=1in]{geometry}
+\usepackage{lineno}
+```
+
+`graphics` is the basic graphics package for embedding figures in the manuscript. My manuscript has a hyperlink to a website, which is enabled by `hyperref`. I was required to use Times New Roman font, which is enabled by `mathptmx`. `setspace` makes it easy to set the line spacing in the document to 1.5, double, or a custom spacing. `geometry` lets you set the size of the margins, and `lineno` adds line numbering.
+
+I'm considering writing my manuscript in LaTeX from the beginning, next time. The only obstacle to that is the review process. It is much easier to comment on a document in Microsoft Word than it is to comment up a PDF, as my advisor pointed out to me when I sent him a PDF of my latest draft. I have yet to find a solution to this, so for now I'm converting my `.tex` file to `.docx` using [`pandoc`](http://pandoc.org/). This is what that bash script looks like:
+
+```{bash pandoc, eval = F}
+pandoc --filter pandoc-citeproc -o manuscript.docx manuscript.tex
+```
+
+This process is imperfect, especially when it comes to tables. They just don't get translated at all. I had to open up the Word doc and insert them by hand, which was a nuisance, so I do hope to find a better workflow for the feedback cycle of a scientific manuscript. Otherwise, I found the total control I had over the presentation of my manuscript in LaTeX to be very satisfying.
