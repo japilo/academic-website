@@ -1,0 +1,82 @@
+---
+draft: yes
+title: Creating a scientific manuscript in LaTeX
+author: ''
+date: '2018-08-29'
+slug: writing-a-manuscript-in-latex
+categories:
+  - latex
+tags:
+  - workflow
+header:
+  caption: ''
+  image: ''
+---
+
+
+
+<p>I’m submitting a manuscript as a <code>.tex</code> file for the first time, so I thought I’d document my workflow for anyone else who wants to give it a try. This is meant for people who know the very basics of LaTeX but are essentially beginners (much like myself.)</p>
+<p>I habitually write my manuscripts in <a href="https://www.literatureandlatte.com/scrivener/overview">Scrivener</a>, which allows me to organize my thoughts into the structure of a scientific paper.</p>
+<div class="figure">
+<img src="/posts/scrivener%20screenshot.png" alt="Scrivener screenshot" />
+<p class="caption">Scrivener screenshot</p>
+</div>
+<p>Scrivener has an option to compile drafts to LaTeX via <a href="http://multimarkdown.com/">MultiMarkdown</a>. The export is not perfect, but it doesn’t take too much tweaking.</p>
+<p>I got started with <a href="https://www.latextemplates.com/template/elseviers-elsarticle-document-class">Elsevier’s article template</a>, even though I am not submitting to an Elsevier journal, and customized from there. One of the first customizations was to find the right <code>.bst</code> file, which BibTeX uses to format the bibliography according to a particular journal’s style. Then I exported the <a href="https://www.zotero.org/">Zotero</a> collection with all my citations for the manuscript to a <code>.bib</code> file and put it in the folder with my <code>.tex</code> file.</p>
+<div class="figure">
+<img src="/posts/zotero%20screenshot.png" alt="Zotero screenshot" />
+<p class="caption">Zotero screenshot</p>
+</div>
+<p>Then I had to go through the manuscript and replace all the parenthetical citations I’d written by hand and replace them with <code>natbib</code> syntax. I cited R using the syntax <code>\citep{r2018}</code>, where <code>r2018</code> was my keyword for R in the <code>.bib</code> file with all my citations:</p>
+<pre><code>@misc{r2018,
+    title = {R: A Language and Environment for Statistical Computing},
+    author = {{R Core Team}},
+    organization = {R Foundation for Statistical Computing},
+    address = {Vienna, Austria},
+    year = {2018},
+    url = {https://www.R-project.org/},
+}
+
+We did our analyses in R \citep{r2018}.</code></pre>
+<p>I also had to add captions and labels to my figures so I could refer to them in the text with their labels instead of their numbers. The advantage to doing this is that if I were to delete Figure 1 in a later revision, all the references to figures would automatically update to reflect the fact that the numbering of the figures has now changed.</p>
+<pre><code>\begin{figure}[p!]
+\includegraphics[keepaspectratio,width=\textwidth,height=0.75\textheight]{somefigure.png}
+\caption{An amazing figure I made.}
+\label{fig:somefig}
+\end{figure}
+
+Our methods were very clever (see Figure \ref{fig:somefig}).</code></pre>
+<p>The journal I am submitting to requires that every figure have its own page in the manuscript. The <code>[p!]</code> modifier after <code>\begin{figure}</code> ensures this.</p>
+<p>Fortunately, I had already made my tables in LaTeX, so I didn’t have to convert those over. However, if I hadn’t already made my tables in LaTeX, I could have made them using the handy R package <code>xtable</code>.</p>
+<pre class="r"><code>library(xtable)
+school &lt;- data.frame(Year = c(&quot;2008&quot;, &quot;2013&quot;, &quot;2018&quot;), 
+           `Schooling I Had` = c(&quot;High School&quot;, &quot;College&quot;, &quot;Masters&quot;))
+xtable(school, c(&quot;Level of schooling acquired by JAP&quot;), label = &quot;table:school&quot;)</code></pre>
+<pre><code>## % latex table generated in R 3.5.1 by xtable 1.8-2 package
+## % Wed Aug 29 10:47:24 2018
+## \begin{table}[ht]
+## \centering
+## \begin{tabular}{rll}
+##   \hline
+##  &amp; Year &amp; Schooling.I.Had \\ 
+##   \hline
+## 1 &amp; 2008 &amp; High School \\ 
+##   2 &amp; 2013 &amp; College \\ 
+##   3 &amp; 2018 &amp; Masters \\ 
+##    \hline
+## \end{tabular}
+## \caption{Level of schooling acquired by JAP} 
+## \label{table:school}
+## \end{table}</code></pre>
+<p>I employed several packages to make my manuscript conform to the journal’s requirements.</p>
+<pre><code>\usepackage{graphics}
+\usepackage{hyperref}
+\usepackage{mathptmx}
+\usepackage{setspace}
+\doublespacing
+\usepackage[margin=1in]{geometry}
+\usepackage{lineno}</code></pre>
+<p><code>graphics</code> is the basic graphics package for embedding figures in the manuscript. My manuscript has a hyperlink to a website, which is enabled by <code>hyperref</code>. I was required to use Times New Roman font, which is enabled by <code>mathptmx</code>. <code>setspace</code> makes it easy to set the line spacing in the document to 1.5, double, or a custom spacing. <code>geometry</code> lets you set the size of the margins, and <code>lineno</code> adds line numbering.</p>
+<p>I’m considering writing my manuscript in LaTeX from the beginning, next time. The only obstacle to that is the review process. It is much easier to comment on a document in Microsoft Word than it is to comment up a PDF, as my advisor pointed out to me when I sent him a PDF of my latest draft. I have yet to find a solution to this, so for now I’m converting my <code>.tex</code> file to <code>.docx</code> using <a href="http://pandoc.org/"><code>pandoc</code></a>. This is what that bash script looks like:</p>
+<pre class="bash"><code>pandoc --filter pandoc-citeproc -o manuscript.docx manuscript.tex</code></pre>
+<p>This process is imperfect, especially when it comes to tables. They just don’t get translated at all. I had to open up the Word doc and insert them by hand, which was a nuisance, so I do hope to find a better workflow for the feedback cycle of a scientific manuscript. Otherwise, I found the total control I had over the presentation of my manuscript in LaTeX to be very satisfying.</p>
