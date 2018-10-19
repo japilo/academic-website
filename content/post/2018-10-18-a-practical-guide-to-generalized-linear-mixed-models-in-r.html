@@ -1,0 +1,396 @@
+---
+title: A Practical Guide to Mixed Models in R
+author: ''
+date: '2018-10-19'
+categories:
+  - r
+tags:
+  - tutorial
+slug: a-practical-guide-to-mixed-models-in-r
+aliases:
+  - /mixed-models/
+header:
+  caption: ''
+  image: static/img/mixedimg.png
+---
+
+
+
+<div id="preface" class="section level1">
+<h1>Preface</h1>
+<p>I created this guide so that students can learn about important statistical concepts while remaining firmly grounded in the programming required to use statistical tests on real data. I want this to be a guide students can keep open in one window while running R in another window, because it is directly relevant to their work.</p>
+<p>In that spirit of openness and relevance, note that I created this guide in R v 3.5.1 and used the following packages:</p>
+<pre class="r"><code>library(MASS) # v7.3-50
+library(car) # v3.0-2
+library(lme4) # v1.1-18-1
+library(mlmRev) # v1.0-6
+library(agridat) # v1.16
+library(MCMCglmm) # v2.26
+library(ggplot2) # v3.0.0</code></pre>
+</div>
+<div id="is-a-mixed-model-right-for-your-needs" class="section level1">
+<h1>1. Is a mixed model right for your needs?</h1>
+<p>A mixed model is similar in many ways to a linear model. It estimates the effects of one or more explanatory variables on a response variable. The output of a mixed model will give you a list of explanatory values, estimates and confidence intervals of their effect sizes, p-values for each effect, and at least one measure of how well the model fits. You should use a mixed model instead of a simple linear model when you have a variable that describes your data sample as a subset of the data you could have collected.</p>
+<p>What do I mean by that? Let’s take a look at some data from a paper wasp kin recognition project I did for my Master’s.</p>
+<pre class="r"><code>head(recog)</code></pre>
+<pre><code>## # A tibble: 6 x 7
+##   `Test ID` Observer Relation Aggression Tolerance Season Test_ID
+##       &lt;int&gt; &lt;chr&gt;    &lt;chr&gt;         &lt;int&gt;     &lt;int&gt; &lt;chr&gt;    &lt;int&gt;
+## 1         1 Charles  Same              4         4 Early        1
+## 2         2 Tyler    Same              1        34 Early        2
+## 3         3 Michelle Same             15        14 Early        3
+## 4         4 Tyler    Same              2        31 Early        4
+## 5         5 Charles  Same              1         4 Early        5
+## 6         6 Rhyan    Same              0        13 Early        6</code></pre>
+<p>My response variables of interest are Aggression and Tolerance. Aggression is the number of aggressive behaviors in a sixty minute period. Tolerance is the number of tolerant behaviors in a sixty minute period. I am interested in the effects of relation (whether the wasps came from the same or different colonies) and season (early or late in the colony cycle) on these response variables. These effects are “fixed” because no matter where, how, or how many wasps I had sampled, I would have still have had the same levels in the same variables: same colony vs. different colony, and early season vs. late season.</p>
+<p>There are two other variables, though, that would not remain fixed between samples. Observer represents the person who scored the interaction and Test ID represents the group of three wasps observed for sixty minutes. The levels of Observer would be different if I had sampled in a different year, because different undergraduate volunteers would be available to observe behavior. The levels of Test ID would also vary between samples, because I could always rearrange which wasps participate in each experimental trial. Each trial is a unique sub-sample of the wasps I collected at that time. If I had been able to test the wasps individually, and if all observers had scored all interactions, I wouldn’t have any random effects. But instead, my data are inherently “lumpy,” and the random effects describe that lumpiness. Mixed models allow us to account for the lumpiness of data.</p>
+<p>Before you proceed, you will also want to think about the structure of your random effects. Are your random effects nested or crossed? In the case of my study, the random effects are <em>nested</em>, because each observer recorded a certain number of trials, and no two observers recorded the same trial, so here Test.ID is nested within Observer. But say I had collected wasps that clustered into five different genetic lineages. The ‘genetics’ random effect would have nothing to do with observer or arena; it would be orthogonal to these other two random effects. Therefore this random effect would be <em>crossed</em> to the others.</p>
+</div>
+<div id="what-probability-distribution-best-fits-your-data" class="section level1">
+<h1>2. What probability distribution best fits your data?</h1>
+<p>Say you’ve decided you want to run a mixed model. The next thing you have to do is find a probability distribution that best fits your data. There are many ways to test this, but I’ll show you one. This method requires the packages <code>car</code> and <code>MASS</code>. Note that the negative binomial and gamma distributions can only handle positive numbers, and the Poisson distribution can only handle positive whole numbers. The binomial and Poisson distributions are different from the others because they are discrete rather than continuous, which means they quantify distinct, countable events or the probability of these events. Now let’s find a fitting distribution for my Aggression variable.</p>
+<pre class="r"><code># This is so that distributions that must be non-zero can make sense of my
+# data
+recog$Aggression.t &lt;- recog$Aggression + 1
+qqp(recog$Aggression.t, &quot;norm&quot;)</code></pre>
+<p><img src="/post/2018-10-18-a-practical-guide-to-generalized-linear-mixed-models-in-r_files/figure-html/fit%20distribution%20aggression-1.png" width="672" /></p>
+<pre><code>## [1] 22 38</code></pre>
+<pre class="r"><code># lnorm means lognormal
+qqp(recog$Aggression.t, &quot;lnorm&quot;)</code></pre>
+<p><img src="/post/2018-10-18-a-practical-guide-to-generalized-linear-mixed-models-in-r_files/figure-html/fit%20distribution%20aggression-2.png" width="672" /></p>
+<pre><code>## [1] 22 38</code></pre>
+<pre class="r"><code># qqp requires estimates of the parameters of the negative binomial, Poisson
+# and gamma distributions. You can generate estimates using the fitdistr
+# function. Save the output and extract the estimates of each parameter as I
+# have shown below.
+nbinom &lt;- fitdistr(recog$Aggression.t, &quot;Negative Binomial&quot;)
+qqp(recog$Aggression.t, &quot;nbinom&quot;, size = nbinom$estimate[[1]], mu = nbinom$estimate[[2]])</code></pre>
+<p><img src="/post/2018-10-18-a-practical-guide-to-generalized-linear-mixed-models-in-r_files/figure-html/fit%20distribution%20aggression-3.png" width="672" /></p>
+<pre><code>## [1] 22 38</code></pre>
+<pre class="r"><code>poisson &lt;- fitdistr(recog$Aggression.t, &quot;Poisson&quot;)
+qqp(recog$Aggression.t, &quot;pois&quot;, lambda = poisson$estimate)</code></pre>
+<p><img src="/post/2018-10-18-a-practical-guide-to-generalized-linear-mixed-models-in-r_files/figure-html/fit%20distribution%20aggression-4.png" width="672" /></p>
+<pre><code>## [1] 22 38</code></pre>
+<pre class="r"><code>gamma &lt;- fitdistr(recog$Aggression.t, &quot;gamma&quot;)
+qqp(recog$Aggression.t, &quot;gamma&quot;, shape = gamma$estimate[[1]], rate = gamma$estimate[[2]])</code></pre>
+<p><img src="/post/2018-10-18-a-practical-guide-to-generalized-linear-mixed-models-in-r_files/figure-html/fit%20distribution%20aggression-5.png" width="672" /></p>
+<pre><code>## [1] 22 38</code></pre>
+<p>Check out the plots I’ve generated using qqp. The y axis represents the observations and the x axis represents the quantiles modeled by the distribution. The solid red line represents a perfect distribution fit and the dashed red lines are the confidence intervals of the perfect distribution fit. You want to pick the distribution for which the largest number of observations falls between the dashed lines. In this case, that’s the lognormal distribution, in which only one observation falls outside the dashed lines. Now, armed with the knowledge of which probability distribution fits best, I can try fitting a model.</p>
+</div>
+<div id="how-to-fit-a-mixed-model-to-your-data" class="section level1">
+<h1>3. How to fit a mixed model to your data</h1>
+<div id="a.-if-your-data-are-normally-distributed" class="section level2">
+<h2>3a. If your data are normally distributed</h2>
+<p>First, a note: if your data best fit the lognormal distribution, <em>do not transform them</em>. This is true for any type of transformation you might apply to your data to make them normal. If you can transform your data to normality, conventional wisdom says you should use the transformed data. More recent statistics literature has entirely changed stance on this matter, however, because transformation makes interpretation of model results more difficult, and it makes mischief with the variance of the transformed variable. Even if your data are transformable to normality, they are still <em>not normal</em>, and you should move on to the next section.</p>
+<p>If your data are normally distributed, your life will be a little easier, because you can use a linear mixed model (LMM). You will want to load the lme4 package and make a call to the function lmer. The first argument to the function is a formula that takes the form <code>y ~ x1 + x2 ...</code> etc., where y is the response variable and x1, x2, etc. are explanatory variables. Random effects are added in with the explanatory variables. Crossed random effects take the form <code>(1 | r1) + (1 | r2) ...</code> while nested random effects take the form <code>(1 | r1 / r2)</code>.</p>
+<p>The next argument is where you designate the data frame your variables come from. The argument after that is an important one. This is where you can designate whether the mixed model will estimate the parameters using maximum likelihood or restricted maximum likelihood. If your random effects are nested, or you have only one random effect, and if your data are balanced (i.e., similar sample sizes in each factor group) set REML to FALSE, because you can use maximum likelihood. If your random effects are crossed, don’t set the REML argument because it defaults to TRUE anyway.</p>
+<p>Lest this all seem too abstract, let’s try this with some data. We will use some data from my very first published study about song in superb starlings. In this study, we were interested in sexual dimorphism, the differences between male and female song. Our random effect was social group, which as I’ve explained above, was a subset of the total number of social groups I could have sampled. Mean pitch of song fits a normal probability distribution.</p>
+<pre class="r"><code>head(starlings)</code></pre>
+<pre><code>## # A tibble: 6 x 4
+##   Individual Sex   Group `Mean Pitch`
+##   &lt;chr&gt;      &lt;chr&gt; &lt;chr&gt;        &lt;dbl&gt;
+## 1 BB-4301    M     MRC1         2911.
+## 2 BB-4344    M     SRB2         2978.
+## 3 BB-4357    M     SRB2         3313.
+## 4 BB-9304    M     SRB1         3268.
+## 5 BB-4226    M     SRB1         3312.
+## 6 BB-9305    F     SRB1         3018.</code></pre>
+<pre class="r"><code>lmm &lt;- lmer(`Mean Pitch` ~ Sex + (1 | Group), data = starlings,
+    REML = FALSE)
+summary(lmm)</code></pre>
+<pre><code>## Linear mixed model fit by maximum likelihood  [&#39;lmerMod&#39;]
+## Formula: `Mean Pitch` ~ Sex + (1 | Group)
+##    Data: starlings
+## 
+##      AIC      BIC   logLik deviance df.resid 
+##    387.6    393.0   -189.8    379.6       24 
+## 
+## Scaled residuals: 
+##      Min       1Q   Median       3Q      Max 
+## -2.11555 -0.59590  0.02327  0.68045  1.90787 
+## 
+## Random effects:
+##  Groups   Name        Variance  Std.Dev. 
+##  Group    (Intercept) 5.509e-13 7.422e-07
+##  Residual             4.528e+04 2.128e+02
+## Number of obs: 28, groups:  Group, 5
+## 
+## Fixed effects:
+##             Estimate Std. Error t value
+## (Intercept)  3069.01      61.43  49.960
+## SexM           56.41      81.26   0.694
+## 
+## Correlation of Fixed Effects:
+##      (Intr)
+## SexM -0.756</code></pre>
+<p>Let’s look at these results. First we get some measures of model fit, including AIC, BIC, log likelihood, and deviance. Then we get an estimate of the variance explained by the random effect. This number is important, because if it’s indistinguishable from zero, then your random effect probably doesn’t matter and you can go ahead and do a regular linear model instead. Next we have estimates of the fixed effects, with standard errors. This information may be enough for you. Some journals like you to report the results of these models as effect sizes with confidence intervals. Certainly when I look at the fixed effects estimate, I can already tell that mean pitch does not differ between sexes and social ranks. But some journals want you to report p-values.</p>
+<p>The creators of the lme4 package are philosophically opposed to p-values, for reasons I’ll not go into here, so if you want some p-values you’ll have to turn to the Anova function in the car package.</p>
+<pre class="r"><code>Anova(lmm)</code></pre>
+<pre><code>## Analysis of Deviance Table (Type II Wald chisquare tests)
+## 
+## Response: Mean Pitch
+##      Chisq Df Pr(&gt;Chisq)
+## Sex 0.4818  1     0.4876</code></pre>
+<p>The Anova function does a Wald test, which tells us how confident we are of our estimate of the effect of sex on pitch, and the p-value tells me that I should not be confident at all.</p>
+<p>There is one complication you might face when fitting a linear mixed model. R may throw you a “failure to converge” error, which usually is phrased “iteration limit reached without convergence.” That means your model has too many factors and not a big enough sample size, and cannot be fit. That means you’re going to have to exclude at least one fixed effect from the model - or go out and collect more data, if you can.</p>
+</div>
+<div id="b.-if-your-data-are-not-normally-distributed" class="section level2">
+<h2>3b. If your data are not normally distributed</h2>
+<p>This is where life gets interesting. You see, the REML and maximum likelihood methods for estimating the effect sizes in the model make assumptions of normality that don’t apply to your data, so you have to use a different method for parameter estimation. The problem is that there are many alternative estimation methods, each run from a different R package, and it can be hard to decide which one suits. I will guide you through this decision process with examples.</p>
+<p>First, we need to test whether we can use penalized quasilikelihood (PQL) or not. PQL is a flexible technique that can deal with non-normal data, unbalanced design, and crossed random effects. However, it produces biased estimates if your response variable fits a discrete count distribution, like Poisson or binomial, and the mean is less than 5 - or if your response variable is binary.</p>
+<p>The Aggression variable from the paper wasp kin recognition data set fits the log-normal distribution, which is not a discretized distribution. That means we can proceed with the PQL method. But before we proceed, let’s return to the matter of transformation to normality. The reason we want to use a GLMM for this is that if we imagine a stastical method as E(x), E(ln(x)) is not the same as ln(E(x)). The former is performing a LMM on a transformed variable, while the latter is performing a GLMM on an untransformed variable. The latter is better because it better captures the variance of x.</p>
+<p>Make sure you have the MASS package loaded. Note that instead of taking all the fixed and random effects as one formula, the random effects get their own argument in the glmmPQL function. To set the distribution to log-normal, we set the family to gaussian (another word for normal) and the link to log. The link can be anything, though if you want to use something besides log or inverse then you’ll have to research how to customize the link function yourself.</p>
+<pre class="r"><code>PQL &lt;- glmmPQL(Aggression.t ~ Relation + Season, ~1 | Observer/Test_ID, family = gaussian(link = &quot;log&quot;), data = recog, verbose = FALSE)
+summary(PQL)</code></pre>
+<pre><code>## Linear mixed-effects model fit by maximum likelihood
+##  Data: recog 
+##   AIC BIC logLik
+##    NA  NA     NA
+## 
+## Random effects:
+##  Formula: ~1 | Observer
+##         (Intercept)
+## StdDev:   0.3312028
+## 
+##  Formula: ~1 | Test_ID %in% Observer
+##         (Intercept) Residual
+## StdDev:   0.5294686 7.127966
+## 
+## Variance function:
+##  Structure: fixed weights
+##  Formula: ~invwt 
+## Fixed effects: Aggression.t ~ Relation + Season 
+##                      Value Std.Error DF   t-value p-value
+## (Intercept)       1.032714 0.5232713 55  1.973572  0.0535
+## RelationStranger  1.209991 0.4674076 55  2.588728  0.0123
+## SeasonLate       -1.333092 0.5982815 23 -2.228201  0.0359
+##  Correlation: 
+##                  (Intr) RltnSt
+## RelationStranger -0.855       
+## SeasonLate       -0.123  0.000
+## 
+## Standardized Within-Group Residuals:
+##         Min          Q1         Med          Q3         Max 
+## -4.86915573 -0.29958380 -0.08012144  0.14279634  5.93336460 
+## 
+## Number of Observations: 84
+## Number of Groups: 
+##              Observer Test_ID %in% Observer 
+##                     4                    28</code></pre>
+<p>This model suggests that season has an effect on Aggression, that is, wasps collected late in the colony cycle were less aggressive than those collected early. It also suggests that the relationship between the wasps has an effect; they are more likely to be aggressive toward strangers than nestmates. I would report these statistics in a paper with the estimate, standard error, t-value, and p-value.</p>
+<p>The output also suggests that the random effects did have an effect on the residuals that needed to be accounted for, as we can see in the standard deviation of the random effects.</p>
+<p>So what if the mean of your response variable is less than 5, or you have a binary response variable, and you can’t use PQL? Here you’re going to have to make another decision, because there are two alternatives you can use: the Laplace approximation and Markov chain Monte Carlo algorithms (MCMC). The Laplace approximation can handle up to 3 random effects. Any more than that, and you’ll have to use MCMC, which is a Bayesian method that can be somewhat confusing.</p>
+<p>Let’s start with an example where we can use the Laplace approximation. We will use a sample dataset from the package mlmRev, which gives us data about how well some Dutch students did in school. For the purposes of this example, I will subset the data to only a few variables of interest, and simplify the “repeatgr” variable to a binary response.</p>
+<pre class="r"><code>data(bdf, package = &quot;mlmRev&quot;)
+bdf &lt;- subset(bdf, select = c(schoolNR, Minority, ses, repeatgr))
+bdf$repeatgr[bdf$repeatgr == 2] &lt;- 1
+str(bdf)</code></pre>
+<pre><code>## &#39;data.frame&#39;:    2287 obs. of  4 variables:
+##  $ schoolNR: Factor w/ 131 levels &quot;1&quot;,&quot;2&quot;,&quot;10&quot;,&quot;12&quot;,..: 1 1 1 1 1 1 1 1 1 1 ...
+##  $ Minority: Factor w/ 2 levels &quot;N&quot;,&quot;Y&quot;: 1 2 1 1 1 2 2 1 2 2 ...
+##  $ ses     : num  23 10 15 23 10 10 23 10 13 15 ...
+##  $ repeatgr: Factor w/ 3 levels &quot;0&quot;,&quot;1&quot;,&quot;2&quot;: 1 1 1 1 1 1 1 1 2 1 ...</code></pre>
+<p>Let’s say we want to find out whether membership in a racial minority and socioeconomic status affect students’ likelihood to repeat a grade. Our response variable is ‘repeatgr’, a binary response indicating whether the student repeated a grade or not. Racial minority status is a binary Y/N category and socioeconomic status is represented by ‘ses’, a numeric scale that ranges from 10 to 50, where 50 is the richest. Our random factor is ‘schoolNR’, which represents the schools from which the students were sampled. Because the response variable is binary, we will need a generalized linear mixed model with a binomial distribution, and because we have fewer than five random effects, we can use the Laplace approximation.</p>
+<p>Strictly speaking, the Laplace approximation is a special case of a parameter estimation method called Gauss-Hermite quadrature (GHQ), with one iteration. GHQ is more accurate than Laplace due to repeated iterations, but becomes less flexible after the first iteration, so you can only use it for one random effect. We can use it in this example because our only random effect is ‘schoolNR.’ To go ahead with this method, we use the lme4 package again.</p>
+<pre class="r"><code>GHQ &lt;- glmer(repeatgr ~ Minority + ses + ses * Minority + (1 | schoolNR), data = bdf, family = binomial(link = &quot;logit&quot;), nAGQ = 25) # Set nAGQ to # of desired iterations
+summary(GHQ)</code></pre>
+<pre><code>## Generalized linear mixed model fit by maximum likelihood (Adaptive
+##   Gauss-Hermite Quadrature, nAGQ = 25) [glmerMod]
+##  Family: binomial  ( logit )
+## Formula: repeatgr ~ Minority + ses + ses * Minority + (1 | schoolNR)
+##    Data: bdf
+## 
+##      AIC      BIC   logLik deviance df.resid 
+##   1672.8   1701.4   -831.4   1662.8     2282 
+## 
+## Scaled residuals: 
+##     Min      1Q  Median      3Q     Max 
+## -0.9637 -0.4072 -0.3145 -0.2213  5.9625 
+## 
+## Random effects:
+##  Groups   Name        Variance Std.Dev.
+##  schoolNR (Intercept) 0.2642   0.514   
+## Number of obs: 2287, groups:  schoolNR, 131
+## 
+## Fixed effects:
+##               Estimate Std. Error z value Pr(&gt;|z|)    
+## (Intercept)   -0.45194    0.20763  -2.177   0.0295 *  
+## MinorityY      0.47957    0.47345   1.013   0.3111    
+## ses           -0.06205    0.00798  -7.775 7.52e-15 ***
+## MinorityY:ses  0.01196    0.02289   0.523   0.6012    
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Correlation of Fixed Effects:
+##             (Intr) MnrtyY ses   
+## MinorityY   -0.400              
+## ses         -0.905  0.369       
+## MinortyY:ss  0.299 -0.866 -0.321</code></pre>
+<pre class="r"><code>Laplace &lt;- glmer(repeatgr ~ Minority + ses + ses * Minority + (1 | schoolNR),
+    data = bdf, family = binomial(link = &quot;logit&quot;))  # Contrast to the Laplace approximation
+summary(Laplace)</code></pre>
+<pre><code>## Generalized linear mixed model fit by maximum likelihood (Laplace
+##   Approximation) [glmerMod]
+##  Family: binomial  ( logit )
+## Formula: repeatgr ~ Minority + ses + ses * Minority + (1 | schoolNR)
+##    Data: bdf
+## 
+##      AIC      BIC   logLik deviance df.resid 
+##   1672.8   1701.5   -831.4   1662.8     2282 
+## 
+## Scaled residuals: 
+##     Min      1Q  Median      3Q     Max 
+## -0.9602 -0.4071 -0.3155 -0.2219  5.9500 
+## 
+## Random effects:
+##  Groups   Name        Variance Std.Dev.
+##  schoolNR (Intercept) 0.2583   0.5083  
+## Number of obs: 2287, groups:  schoolNR, 131
+## 
+## Fixed effects:
+##                Estimate Std. Error z value Pr(&gt;|z|)    
+## (Intercept)   -0.454556   0.206105  -2.205   0.0274 *  
+## MinorityY      0.480047   0.471214   1.019   0.3083    
+## ses           -0.061913   0.007908  -7.829 4.93e-15 ***
+## MinorityY:ses  0.011938   0.022737   0.525   0.5996    
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Correlation of Fixed Effects:
+##             (Intr) MnrtyY ses   
+## MinorityY   -0.400              
+## ses         -0.906  0.369       
+## MinortyY:ss  0.299 -0.866 -0.321</code></pre>
+<p>You can see there’s no important difference between Laplace and GHQ in this case. Both show that socioeconomic class has a highly significant effect on students’ likelihood to repeat a grade, though even with the logit transformation we can see that the effect size is small. There is one more consideration, though, when using this method. It becomes inaccurate when used on overdispersed data - that is, when the combined residuals are much larger than the residual degrees of freedom. When you use this method, you should check the model to make sure the data are not overdispersed. Here is some code that will help you with that.</p>
+<pre class="r"><code>overdisp_fun &lt;- function(model) {
+    ## number of variance parameters in an n-by-n variance-covariance matrix
+    vpars &lt;- function(m) {
+        nrow(m) * (nrow(m) + 1)/2
+    }
+    # The next two lines calculate the residual degrees of freedom
+    model.df &lt;- sum(sapply(VarCorr(model), vpars)) + length(fixef(model))
+    rdf &lt;- nrow(model.frame(model)) - model.df
+    # extracts the Pearson residuals
+    rp &lt;- residuals(model, type = &quot;pearson&quot;)
+    Pearson.chisq &lt;- sum(rp^2)
+    prat &lt;- Pearson.chisq/rdf
+    # Generates a p-value. If less than 0.05, the data are overdispersed.
+    pval &lt;- pchisq(Pearson.chisq, df = rdf, lower.tail = FALSE)
+    c(chisq = Pearson.chisq, ratio = prat, rdf = rdf, p = pval)
+}</code></pre>
+<p>Save this code as an R script and source it. Use the function on the model you’ve created. These school data are not overdispersed. If yours are, don’t panic. You can model overdispersion as a random effect, with one random effect level for each observation. In this case, I would use student ID as the random effect variable. Note that you cannot use this method for a binomially distributed population if you have only one observation per individual.</p>
+<p>Let’s move on to the case where we can’t use glmmPQL (i.e., because the mean of Poisson data is too small or because the response variable is categorical) and we have five or more random effects. I couldn’t find a sample dataset for this, so instead we will turn the variable of interest in a sample dataset into a binary response. Consider these data about barley farmers. Imagine that for a barley harvest to yield a profit, the income from that barley harvest must be greater than 140.</p>
+<pre class="r"><code>data(&quot;student.barley&quot;, package = &quot;agridat&quot;)
+student.barley &lt;- transform(student.barley, year=factor(year))
+profit &lt;- as.numeric(student.barley$income &gt; 140)
+farmers &lt;- cbind(student.barley, profit)
+farmers &lt;- farmers[c(1:5, 8)]
+str(farmers)</code></pre>
+<pre><code>## &#39;data.frame&#39;:    102 obs. of  6 variables:
+##  $ year    : Factor w/ 6 levels &quot;1901&quot;,&quot;1902&quot;,..: 1 1 1 1 2 2 2 2 2 2 ...
+##  $ farmer  : Factor w/ 18 levels &quot;Allardyce&quot;,&quot;Dooley&quot;,..: 10 5 3 18 10 5 18 17 4 12 ...
+##  $ place   : Factor w/ 16 levels &quot;Arnestown&quot;,&quot;Bagnalstown&quot;,..: 3 16 14 11 3 16 11 4 8 6 ...
+##  $ district: Factor w/ 4 levels &quot;CentralPlain&quot;,..: 2 2 1 1 2 2 1 1 4 4 ...
+##  $ gen     : Factor w/ 2 levels &quot;Archer&quot;,&quot;Goldthorpe&quot;: 1 1 1 1 1 1 1 1 1 1 ...
+##  $ profit  : num  1 1 1 1 1 1 1 1 1 1 ...</code></pre>
+<p>In this case, let’s say we have no explanatory variables at all. We don’t have any ideas about what fixed effects might influence whether a barley harvest turns a profit or not. We’re interested in which random effects contribute to the variability of profit. After all, random effects are factors that change the variance of a response variable; sometimes we’re trying to account for that variance to make the fixed effects clearer, but sometimes we’re interested in the variances of fixed effects for their own sake. To do this, we will use MCMCglmm, which can not only handle many random effects, but provides confidence intervals for the random effects, which none of the other packages we’ve used here provide in their summary (though in lme4 you can use confint() on a fitted model to achieve the same end.)</p>
+<p>The confusing part about MCMCglmm is that it is a Bayesian statistical method. All models make assumptions about the distribution of the variance in your data, but in a Bayesian method these assumptions are explicit, and we need to specify these assumed distributions. In Bayesian statistics, we call these priors. The priors I’ve used here are bog-standard and will work for most data. Feel free to use them yourself. Just keep in mind that one R structure needs to be specified for each fixed effect and one G structure needs to be specified for each random effect. Also remember my caution about the lognormal distribution: these priors may not play nicely with data modeled with a log link, so do some research on what priors to use for data on a log scale.</p>
+<pre class="r"><code>prior &lt;- list(R = list(V = 1, n = 0, fix = 1), G = list(G1 = list(V = 1, n = 1),
+    G2 = list(V = 1, n = 1), G3 = list(V = 1, n = 1), G4 = list(V = 1, n = 1),
+    G5 = list(V = 1, n = 1)))
+set.seed(45)
+MCMC &lt;- MCMCglmm(fixed = profit ~ 1, random = ~year + farmer + place + gen + district, data = farmers, family = &quot;categorical&quot;, prior = prior, verbose = FALSE)</code></pre>
+<pre><code>## Warning: &#39;cBind&#39; is deprecated.
+##  Since R version 3.2.0, base&#39;s cbind() should work fine with S4 objects</code></pre>
+<pre class="r"><code>summary(MCMC)</code></pre>
+<pre><code>## 
+##  Iterations = 3001:12991
+##  Thinning interval  = 10
+##  Sample size  = 1000 
+## 
+##  DIC: 76.10039 
+## 
+##  G-structure:  ~year
+## 
+##      post.mean l-95% CI u-95% CI eff.samp
+## year     29.21   0.3259    128.9    6.127
+## 
+##                ~farmer
+## 
+##        post.mean l-95% CI u-95% CI eff.samp
+## farmer      2.54   0.1036     10.3    51.53
+## 
+##                ~place
+## 
+##       post.mean l-95% CI u-95% CI eff.samp
+## place     1.589   0.1004     5.51    129.5
+## 
+##                ~gen
+## 
+##     post.mean l-95% CI u-95% CI eff.samp
+## gen     13.75  0.08969       27     1000
+## 
+##                ~district
+## 
+##          post.mean l-95% CI u-95% CI eff.samp
+## district     1.803   0.0675    5.886     1000
+## 
+##  R-structure:  ~units
+## 
+##       post.mean l-95% CI u-95% CI eff.samp
+## units         1        1        1        0
+## 
+##  Location effects: profit ~ 1 
+## 
+##             post.mean l-95% CI u-95% CI eff.samp pMCMC
+## (Intercept)     3.991   -1.620   12.672    18.61 0.138</code></pre>
+<p>If we look at the means and confidence intervals, we can see that the only random effects that really contributes to the variability of profit are year and genotype. That is to say, the probability of a barley harvest turning a profit varies a lot from year to year, and between genotypes, but it doesn’t vary much between districts, farmers, or places.</p>
+</div>
+</div>
+<div id="know-your-data" class="section level1">
+<h1>4. Know your data</h1>
+<p>I’ve taken you on a whirlwind tour of mixed models. I emphasize this because a lot more goes into data analysis than I’ve shown you. There are some important steps that go before and after that I don’t have space to cover in detail here, but that I’d like to touch upon. Those steps are graphing.</p>
+<p>You can’t really know which analyses are right for your data until you get familiar with them, and the best way to get familiar with them is to plot them. Usually my first step is to do density plots of my variable of interest, broken down by the explanatory variable I’m most curious about. Density plots are like histograms, except they aren’t dependent on how large you make the bins along the x axis. There are a few ways to do make them, but here’s how I do it in ggplot2, which makes very pretty graphs.</p>
+<pre class="r"><code>ggplot(recog, aes(x = Aggression)) + geom_density() + facet_wrap(Relation ~
+    Season)</code></pre>
+<p><img src="/post/2018-10-18-a-practical-guide-to-generalized-linear-mixed-models-in-r_files/figure-html/density%20plot-1.png" width="672" /></p>
+<p>Here I split up my data by season and relation, my two fixed effects. We can see right away that the dataset contains an extreme positive outlier; by far most of the observations fall between 0 and 20 and there’s an outlier or two throwing it off. This is good to know. We can also see that a high proportion of the late season observations are equal to zero.</p>
+<p>Plotting is also important for assessing model fit. You can tell which model you fit does the best job describing the data by plotting the fitted values in various ways. One easy application is graphing the residuals of a model. If you imagine a model as a best-fit line going through the scatterplot of your data, the residuals are the distances of of the points in the scatterplot from the best-fit line. If the model fits, then if you plot residuals against the fitted values, you should see random scatter. If the scatter is not random that means there’s some other random or fixed effect that explains variation in your data that you’re missing.</p>
+<p>Let’s try plotting the residuals of the mixed model I fit for song pitch in superb starlings. What this plot does is create a dashed horizontal line representing zero: an average of zero deviation from the best-fit line.</p>
+<pre class="r"><code>plot(fitted(lmm), residuals(lmm), xlab = &quot;Fitted Values&quot;, ylab = &quot;Residuals&quot;)
+abline(h = 0, lty = 2)</code></pre>
+<p><img src="/post/2018-10-18-a-practical-guide-to-generalized-linear-mixed-models-in-r_files/figure-html/plot%20residuals-1.png" width="672" /></p>
+<p>As we can see, the spread of points around the zero line on each side is about equal. There’s no clustering of more points above or below the line, which is a good sign. If there were a greater weight of points on either side of the line, it would indicate a bad model fit.</p>
+<p>Let’s try a technique for graphically comparing MCMC models. We’ll go back to our barley farmers example and look at a diagnostic plot of the model. We’re looking for graphs that resemble white noise around a line.</p>
+<pre class="r"><code>plot(MCMC)</code></pre>
+<p><img src="/post/2018-10-18-a-practical-guide-to-generalized-linear-mixed-models-in-r_files/figure-html/trace%20plots-1.png" width="672" /><img src="/post/2018-10-18-a-practical-guide-to-generalized-linear-mixed-models-in-r_files/figure-html/trace%20plots-2.png" width="672" /><img src="/post/2018-10-18-a-practical-guide-to-generalized-linear-mixed-models-in-r_files/figure-html/trace%20plots-3.png" width="672" /></p>
+<p>These random effects are looking pretty spiky, not like white noise. So let’s try refitting the model with more iterations. This is more computationally intensive, but produces more accurate results.</p>
+<pre class="r"><code>set.seed(78)
+MCMC2 &lt;- MCMCglmm(profit ~ 1, random = ~year + farmer + place + gen + district,
+    data = farmers, prior = prior, family = &quot;categorical&quot;, verbose = FALSE,
+    nitt = 9e+05, burnin = 5000, thin = 100)
+plot(MCMC2)</code></pre>
+<p><img src="/post/2018-10-18-a-practical-guide-to-generalized-linear-mixed-models-in-r_files/figure-html/redo%20MCMC-1.png" width="672" /><img src="/post/2018-10-18-a-practical-guide-to-generalized-linear-mixed-models-in-r_files/figure-html/redo%20MCMC-2.png" width="672" /><img src="/post/2018-10-18-a-practical-guide-to-generalized-linear-mixed-models-in-r_files/figure-html/redo%20MCMC-3.png" width="672" /></p>
+<p>Now everything looks much closer to white noise around a line, which suggests a better model. Now let’s compare the confidence intervals for the variance of the random effects between the two models.</p>
+<pre class="r"><code># glue together the estimates and confidence intervals for the two models
+conf.int &lt;- rbind(summary(MCMC)$Gcovariances, summary(MCMC2)$Gcovariances)
+# create a data frame with factors for which model and which random effect
+conf.int &lt;- data.frame(conf.int, model = factor(rep(c(&quot;model1&quot;, &quot;model2&quot;), each = 5)), random.effect = dimnames(conf.int)[[1]])
+# plot estimates and confidence intervals as box plots grouped by model
+ggplot(conf.int, aes(x = random.effect, y = post.mean), group = model) + geom_crossbar(aes(ymax = u.95..CI,
+    ymin = l.95..CI, color = model), size = 1, position = &quot;dodge&quot;)</code></pre>
+<p><img src="/post/2018-10-18-a-practical-guide-to-generalized-linear-mixed-models-in-r_files/figure-html/confints-1.png" width="672" /></p>
+<p>This is a reassuring plot because the estimates are very similar between the two models (though the estimate for year is a little lower in the second) but the confidence interval for year is markedly smaller in the second model, which means we can be more confident about this estimate. We can feel pretty good about our inferences on the second model, i.e., that genotype and year are the main contributors to variability.</p>
+<p>Our brains are best at detecting patterns when they are presented visually, so plot your data and your models whenever you can. Learn to use the base, lattice, or ggplot2 package and it will serve you well for years to come.</p>
+</div>
+<div id="resources" class="section level1">
+<h1>Resources</h1>
+<ul>
+<li>Bates, D. M. (2018). lme4: Mixed-effects modeling with R. <a href="http://lme4.r-forge.r-project.org/lMMwR/" class="uri">http://lme4.r-forge.r-project.org/lMMwR/</a>.</li>
+<li><a href="http://bbolker.github.io/mixedmodels-misc/glmmFAQ.html">GLMM FAQ</a> by Ben Bolker (Professor of Mathematics and Biology, McMaster University).</li>
+<li><a href="https://rpubs.com/bbolker">Worked examples of GLMMs in R</a> by Ben Bolker</li>
+<li>Bolker, B. M., Brooks, M. E., Clark, C. J., Geange, S. W., Poulsen, J. R., Stevens, M. H. H., &amp; White, J.-S. S. (2009). Generalized linear mixed models: a practical guide for ecology and evolution. Trends in ecology &amp; evolution, 24(3), 127-135.</li>
+<li>Hilborn, R. (1997). The ecological detective: confronting models with data (Vol. 28). Princeton University Press.</li>
+<li>Lindsey, J. K., &amp; Jones, B. (1998). Choosing among generalized linear models applied to medical data. Statistics in medicine, 17(1), 59-68.</li>
+</ul>
+</div>
