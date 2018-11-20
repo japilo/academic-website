@@ -16,7 +16,7 @@ Recently I tweeted about reference management apps to learn what people preferre
 
 What is a reference management app? It's software that helps you keep track of scientific papers you're reading, and can manage and format your citations for manuscripts. I'm deep in a massive literature review right now, and I'm looking for software that can help me organize and keep track of what I find, and ultimately help me cite these papers later.
 
-There are [a lot of software options]("https://en.wikipedia.org/wiki/Comparison_of_reference_management_software") out there, so I just checked out the ones I saw people talking about on Twitter: EndNote, Mendeley, Papers, and Zotero. Here are my impressions.
+There are [a lot of software options](https://en.wikipedia.org/wiki/Comparison_of_reference_management_software "app comparison") out there, so I just checked out the ones I saw people talking about on Twitter: EndNote, Mendeley, Papers, and Zotero. Here are my impressions.
 
 # EndNote
 
