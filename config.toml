@@ -23,7 +23,7 @@ preserveTaxonomyNames = true
 paginate = 10
 
 # Enable analytics by entering your Google Analytics tracking ID
-googleAnalytics = "6c30dc137661b715"
+googleAnalytics = ""
 
 # Default language to use (if you setup multilingual support)
 defaultContentLanguage = "en"
