@@ -18,14 +18,14 @@ First, I carefully read the email to see which tests were failing. It seemed tha
 
 Then, I loaded the alpha version of `tibble` so I could test out some solutions to the problems indicated in the email.
 
-```{r load alpha version}
+```
 library(devtools)
 install_github("tidyverse/tibble")
 ```
 
 The failing tests indicated that the following code in `matrix_model` was problematic with the new version of `tibble`:
 
-```{r problematic code}
+```
 pop %>% map(as_tibble) %>% bind_rows() %>%
       group_by(row_number()) %>% nest() %>% mutate(total = map(data, sum)) %>%
       unnest() %>% set_names(c("timestep", "total", paste0("stage", 1:stages)))
