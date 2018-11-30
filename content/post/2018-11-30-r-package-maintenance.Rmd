@@ -1,0 +1,47 @@
+---
+title: R Package Maintenance
+author: ''
+date: '2018-11-30'
+slug: r-package-maintenance
+categories:
+  - r
+tags:
+  - workflow
+header:
+  caption: ''
+  image: ''
+---
+
+I just got an automated email from the developers of the [Tidyverse]("https://www.tidyverse.org/") that they are updating the package [tibble]("https://tibble.tidyverse.org/") such that it will break the code in my package [colorednoise]("https://japilo.github.io/colorednoise/"), which depends on it. Part of being a package maintainer is updating your package so it won't break when other packages do. So I thought I would document how I did this in a blog post.
+
+First, I carefully read the email to see which tests were failing. It seemed that the problem lay in calls to `tibble` functions from my function `matrix_model`.
+
+Then, I loaded the alpha version of `tibble` so I could test out some solutions to the problems indicated in the email.
+
+```{r load alpha version}
+library(devtools)
+install_github("tidyverse/tibble")
+```
+
+The failing tests indicated that the following code in `matrix_model` was problematic with the new version of `tibble`:
+
+```{r problematic code}
+pop %>% map(as_tibble) %>% bind_rows() %>%
+      group_by(row_number()) %>% nest() %>% mutate(total = map(data, sum)) %>%
+      unnest() %>% set_names(c("timestep", "total", paste0("stage", 1:stages)))
+```
+
+I read the documentation for `tibble 2.0.0` and found that the function `as_tibble` behaves differently now. It doesn't automatically repair invalid column names, which means I may have to move the call to `set_names` earlier in the pipeline. To investigate, I put in a breakpoint in the code before this chunk. Rstudio has breakpoints as a debugging feature. When you add a breakpoint, the code runs up until the breakpoint, then stops so that you are "inside" the function. That way I am able to play with the `pop` object inside the `matrix_model` function.
+
+I added the `.name_repair` argument to my call to `as_tibble`, and sure enough, the column names were all in order. Now it's time to update my package DESCRIPTION file to reflect a new dependency on `tibble 2.0.0`.
+
+```
+Imports:
+  stats (>= 3.3.2),
+  dplyr (>= 0.7.3),
+  purrr (>= 0.2.3),
+  tibble (>= 2.0.0),
+  tidyr (>= 0.8.0)
+```
+
+I have not yet pushed these changes to GitHub or submitted to CRAN because `tibble 2.0.0` is not officially live yet, but when it is, I will push to GitHub and check out the automatic package checks in Travis CI, and if they all pass, I'll submit to CRAN.
