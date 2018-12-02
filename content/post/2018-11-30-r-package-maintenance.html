@@ -1,0 +1,34 @@
+---
+title: R Package Maintenance
+author: ''
+date: '2018-11-30'
+slug: r-package-maintenance
+categories:
+  - r
+tags:
+  - workflow
+header:
+  caption: ''
+  image: ''
+---
+
+
+
+<p>I just got an automated email from the developers of the <a href="%22https://www.tidyverse.org/%22">Tidyverse</a> that they are updating the package <a href="%22https://tibble.tidyverse.org/%22">tibble</a> such that it will break the code in my package <a href="%22https://japilo.github.io/colorednoise/%22">colorednoise</a>, which depends on it. Part of being a package maintainer is updating your package so it won’t break when other packages do. So I thought I would document how I did this in a blog post.</p>
+<p>First, I carefully read the email to see which tests were failing. It seemed that the problem lay in calls to <code>tibble</code> functions from my function <code>matrix_model</code>.</p>
+<p>Then, I loaded the alpha version of <code>tibble</code> so I could test out some solutions to the problems indicated in the email.</p>
+<pre><code>library(devtools)
+install_github(&quot;tidyverse/tibble&quot;)</code></pre>
+<p>The failing tests indicated that the following code in <code>matrix_model</code> was problematic with the new version of <code>tibble</code>:</p>
+<pre><code>pop %&gt;% map(as_tibble) %&gt;% bind_rows() %&gt;%
+      group_by(row_number()) %&gt;% nest() %&gt;% mutate(total = map(data, sum)) %&gt;%
+      unnest() %&gt;% set_names(c(&quot;timestep&quot;, &quot;total&quot;, paste0(&quot;stage&quot;, 1:stages)))</code></pre>
+<p>I read the documentation for <code>tibble 2.0.0</code> and found that the function <code>as_tibble</code> behaves differently now. It doesn’t automatically repair invalid column names, which means I may have to move the call to <code>set_names</code> earlier in the pipeline. To investigate, I put in a breakpoint in the code before this chunk. Rstudio has breakpoints as a debugging feature. When you add a breakpoint, the code runs up until the breakpoint, then stops so that you are “inside” the function. That way I am able to play with the <code>pop</code> object inside the <code>matrix_model</code> function.</p>
+<p>I added the <code>.name_repair</code> argument to my call to <code>as_tibble</code>, and sure enough, the column names were all in order. Now it’s time to update my package DESCRIPTION file to reflect a new dependency on <code>tibble 2.0.0</code>.</p>
+<pre><code>Imports:
+  stats (&gt;= 3.3.2),
+  dplyr (&gt;= 0.7.3),
+  purrr (&gt;= 0.2.3),
+  tibble (&gt;= 2.0.0),
+  tidyr (&gt;= 0.8.0)</code></pre>
+<p>I have not yet pushed these changes to GitHub or submitted to CRAN because <code>tibble 2.0.0</code> is not officially live yet, but when it is, I will push to GitHub and check out the automatic package checks in Travis CI, and if they all pass, I’ll submit to CRAN.</p>
