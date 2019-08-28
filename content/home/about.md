@@ -26,10 +26,11 @@ weight = 5
   course = "BA in Ecology, Evolution, and Environmental Biology"
   institution = "Columbia University"
   year = 2012
- 
+
 +++
 
 # Biography
 
-Julia Pilowsky is a Chilean-American quantitative ecologist who has conducted research in South Africa, Kenya, Denmark, and the United States. 
-She is currently in a joint PhD program advised by Carsten Rahbek and Damien Fordham, funded by the Australian Research Council, researching the population dynamics of extinct mammals.
+Julia Pilowsky is a Chilean-American quantitative ecologist who has conducted research in South Africa, Kenya, Denmark, Australia, and the United States.
+
+She is currently in a joint PhD program funded by the Australian Research Council. Her research is about building models to understand the spatial dynamics of North American megafauna since the Ice Age. The study will advance the fields of conservation biogeography and process-explicit ecological modeling.
