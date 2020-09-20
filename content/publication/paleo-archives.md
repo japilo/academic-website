@@ -2,7 +2,7 @@
 title = "Using paleo-archives to safeguard biodiversity under climate change"
 date = "2020-08-28"
 
-authors = [ "Fordham, D. A.", "Jackson, S. T.", "Brown, S. C.", "Huntley, B.", "Brook, B. W.", "Dahl-Jensen, D.", "Gilbert, M. T. P.", "Otto-Bliesner, B. L.", "Svensson, A.", "Theodoridis, S.", "Wilmshurst, J. M.", "Buettel, J. C.", "Canteri, E.", "McDowell, M.", "Orlando, L.", **"Pilowsky, J.A."**, "Rahbek, C.", "Nogues-Bravo, D." ]
+authors = [ "Fordham, D. A.", "Jackson, S. T.", "Brown, S. C.", "Huntley, B.", "Brook, B. W.", "Dahl-Jensen, D.", "Gilbert, M. T. P.", "Otto-Bliesner, B. L.", "Svensson, A.", "Theodoridis, S.", "Wilmshurst, J. M.", "Buettel, J. C.", "Canteri, E.", "McDowell, M.", "Orlando, L.", "**Pilowsky, J.A.**", "Rahbek, C.", "Nogues-Bravo, D." ]
 publication_types = ["2"]
 
 publication = "*Science*, 369, 6507, p. eabc5654"
